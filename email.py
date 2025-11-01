@@ -5,12 +5,10 @@ from io import BytesIO
 import random
 from datetime import datetime
 import plotly.express as px
-import time
 
-# ----------------------------- PAGE CONFIG ---------------------------------
-st.set_page_config(page_title="Corporate SOC Console", layout="wide", page_icon="🧠")
+# ----------------------------- CONFIG ---------------------------------
+st.set_page_config(page_title="Corporate Email Security Console", layout="wide", page_icon="🧠")
 
-# ----------------------------- GLOBALS ---------------------------------
 ATTACHMENT_SIZE_LIMIT_MB = 5
 ATTACHMENT_SIZE_LIMIT_BYTES = ATTACHMENT_SIZE_LIMIT_MB * 1024 * 1024
 
@@ -19,7 +17,7 @@ st.markdown("""
 <style>
 .stApp {
     background-color: #0e1117;
-    color: #e5e7eb;
+    color: #f5f5f5;
     font-family: 'Segoe UI', sans-serif;
 }
 [data-testid="stHeader"] {background: rgba(0,0,0,0);}
@@ -42,25 +40,11 @@ div[data-testid="stExpander"] {background-color: #161b22; border: 1px solid #303
     padding: 20px; border-radius: 12px; text-align: center;
     box-shadow: 0px 0px 10px rgba(0,255,255,0.2);
 }
-@keyframes flash {
-  0% {background-color: #ff1744;}
-  50% {background-color: #b71c1c;}
-  100% {background-color: #ff1744;}
-}
-.alert-banner {
-  padding: 15px;
-  color: white;
-  font-weight: bold;
-  text-align: center;
-  border-radius: 8px;
-  animation: flash 1s infinite;
-  font-size: 18px;
-  margin-bottom: 15px;
-}
 </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------- DETECTION LOGIC ---------------------------------
+
 REGEX_PATTERNS = {
     "Phone Number": r"\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b",
     "Credit Card": r"\b(?:\d[ -]*?){13,16}\b",
@@ -79,8 +63,7 @@ def detect_phishing(body_text, from_email):
     return flags
 
 def classify_threat(flags):
-    if not flags:
-        return ("Safe", "✅", "Low")
+    if not flags: return ("Safe", "✅", "Low")
     if any("Credit Card" in f or "Financial" in f for f in flags):
         return ("Data Leakage", "🚨", "High")
     if any("Phishing" in f or "Spoof" in f or "URL" in f for f in flags):
@@ -104,25 +87,16 @@ def monitor_email(from_email, body_text, attachments):
     return list(set(flags))
 
 def add_to_log(from_email, to_email, subject, flags, direction):
-    if "log" not in st.session_state:
-        st.session_state.log = []
+    if "log" not in st.session_state: st.session_state.log = []
     threat, icon, severity = classify_threat(flags)
     st.session_state.log.append({
         "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "Direction": direction,
-        "From": from_email,
-        "To": to_email,
-        "Subject": subject,
-        "Threat Type": threat,
-        "Severity": severity,
-        "Flags": ", ".join(flags) if flags else "None",
-        "Icon": icon
+        "Direction": direction, "From": from_email, "To": to_email,
+        "Subject": subject, "Threat Type": threat,
+        "Severity": severity, "Flags": ", ".join(flags) if flags else "None", "Icon": icon
     })
-    # Store latest high severity alert for banner
-    if severity == "High":
-        st.session_state.latest_alert = f"{icon} {threat} detected from {from_email} — {subject}"
 
-# ----------------------------- MOCK EMAILS ---------------------------------
+# ----------------------------- MOCK DATA ---------------------------------
 mock_img = BytesIO(b"fakeimg"); mock_img.name="invoice.png"; mock_img.type="image/png"; mock_img.size=120000
 mock_big = BytesIO(b"x"*6000000); mock_big.name="data.zip"; mock_big.type="application/zip"; mock_big.size=6000000
 
@@ -133,22 +107,16 @@ MOCK_INBOX = [
     {"from": "hr@company.com", "subject": "Policy Update", "body": "Please review updated HR policy document.", "attachments": []},
 ]
 
-if "log" not in st.session_state:
-    st.session_state.log = []
-if "latest_alert" not in st.session_state:
-    st.session_state.latest_alert = None
+if "log" not in st.session_state: st.session_state.log = []
 
 # ----------------------------- SIDEBAR ---------------------------------
-st.sidebar.title("🧠 SOC Console Navigation")
-page = st.sidebar.radio("Sections", ["📤 Compose", "📥 Inbox", "📊 Dashboard", "🚨 Live Threat Feed"])
-
-# ----------------------------- ALERT BANNER ---------------------------------
-if st.session_state.latest_alert:
-    st.markdown(f"<div class='alert-banner'>🚨 {st.session_state.latest_alert}</div>", unsafe_allow_html=True)
+st.sidebar.title("🧠 Security Console")
+page = st.sidebar.radio("Sections", ["📤 Compose", "📥 Inbox", "📈 Dashboard", "🧩 Threat Insights"])
 
 # ----------------------------- COMPOSE PAGE ---------------------------------
 if page == "📤 Compose":
     st.title("📤 Compose Outgoing Email")
+    st.caption("Simulate sending corporate emails through the monitoring engine.")
 
     with st.form("compose"):
         from_email = st.text_input("From", "employee@company.com")
@@ -189,49 +157,52 @@ elif page == "📥 Inbox":
                 st.info(f"📎 {', '.join([a.name for a in mail['attachments']])}")
 
 # ----------------------------- DASHBOARD PAGE ---------------------------------
-elif page == "📊 Dashboard":
-    st.title("📊 Security Analytics Dashboard")
+elif page == "📈 Dashboard":
+    st.title("📊 Threat Monitoring Dashboard")
 
     if not st.session_state.log:
-        st.info("No activity yet.")
+        st.info("No activity detected. Interact with inbox or compose to generate logs.")
     else:
         df = pd.DataFrame(st.session_state.log)
+
         total = len(df)
         high = len(df[df["Severity"]=="High"])
         med = len(df[df["Severity"]=="Medium"])
         low = len(df[df["Severity"]=="Low"])
 
-        c1, c2, c3, c4 = st.columns(4)
-        c1.markdown(f"<div class='metric-card'><h3>Total Emails</h3><h2>{total}</h2></div>", unsafe_allow_html=True)
-        c2.markdown(f"<div class='metric-card'><h3>High</h3><h2 style='color:#ff4b4b'>{high}</h2></div>", unsafe_allow_html=True)
-        c3.markdown(f"<div class='metric-card'><h3>Medium</h3><h2 style='color:#ff9800'>{med}</h2></div>", unsafe_allow_html=True)
-        c4.markdown(f"<div class='metric-card'><h3>Low</h3><h2 style='color:#4caf50'>{low}</h2></div>", unsafe_allow_html=True)
+        col1, col2, col3, col4 = st.columns(4)
+        col1.markdown(f"<div class='metric-card'><h3>Total Emails</h3><h2>{total}</h2></div>", unsafe_allow_html=True)
+        col2.markdown(f"<div class='metric-card'><h3>High Severity</h3><h2 style='color:#ff4b4b'>{high}</h2></div>", unsafe_allow_html=True)
+        col3.markdown(f"<div class='metric-card'><h3>Medium</h3><h2 style='color:#ff9800'>{med}</h2></div>", unsafe_allow_html=True)
+        col4.markdown(f"<div class='metric-card'><h3>Low</h3><h2 style='color:#4caf50'>{low}</h2></div>", unsafe_allow_html=True)
 
         st.divider()
         st.dataframe(df, use_container_width=True, hide_index=True)
 
-        colA, colB = st.columns(2)
-        with colA:
+        col5, col6 = st.columns(2)
+        with col5:
             fig1 = px.bar(df, x="Severity", color="Severity", title="Threats by Severity", text_auto=True)
             st.plotly_chart(fig1, use_container_width=True)
-        with colB:
-            fig2 = px.pie(df, names="Threat Type", title="Threat Distribution", hole=0.4)
+        with col6:
+            fig2 = px.pie(df, names="Threat Type", title="Threat Type Distribution", hole=0.4)
             st.plotly_chart(fig2, use_container_width=True)
 
-        st.download_button("⬇️ Export Logs", df.to_csv(index=False).encode('utf-8'), "security_log.csv", "text/csv")
+        st.download_button("⬇️ Export CSV", df.to_csv(index=False).encode('utf-8'), "security_log.csv", "text/csv")
 
-# ----------------------------- LIVE THREAT FEED ---------------------------------
-elif page == "🚨 Live Threat Feed":
-    st.title("🚨 Real-Time Threat Intelligence Feed")
+# ----------------------------- THREAT INSIGHTS PAGE ---------------------------------
+elif page == "🧩 Threat Insights":
+    st.title("🧠 Threat Intelligence Feed")
+    st.caption("Live analytics of the simulated security environment")
 
     if not st.session_state.log:
-        st.info("No events detected yet.")
+        st.info("No data available. Generate some events first.")
     else:
         df = pd.DataFrame(st.session_state.log)
-        for _, row in df.tail(10).iterrows():
-            color = "#ff4b4b" if row["Severity"]=="High" else "#ff9800" if row["Severity"]=="Medium" else "#4caf50"
-            st.markdown(f"<div style='background-color:{color}; padding:10px; border-radius:6px; margin-bottom:5px;'>"
-                        f"🕒 {row['Timestamp']} — <b>{row['Threat Type']}</b> ({row['Severity']})<br>"
-                        f"📤 {row['From']} → {row['To']}<br>🧩 Flags: {row['Flags']}</div>", unsafe_allow_html=True)
+        recent = df.tail(5)
+        st.markdown("### 🔥 Recent Incidents")
+        for _, r in recent.iterrows():
+            st.markdown(f"**{r['Timestamp']}** | {r['Icon']} **{r['Threat Type']}** from `{r['From']}` → `{r['To']}` | *{r['Severity']}*")
 
-        st.caption("Feed updates whenever a new email is scanned or sent.")
+        st.markdown("### ⏱️ Activity Over Time")
+        fig3 = px.line(df, x="Timestamp", color="Severity", title="Timeline of Detected Events")
+        st.plotly_chart(fig3, use_container_width=True)
