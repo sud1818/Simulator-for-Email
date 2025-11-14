@@ -418,3 +418,20 @@ if page == "History":
 
 st.markdown("---")
 st.caption("Demo scanner • Cloud-safe • No real device scanning performed.")
+# --- Filtering ---
+filtered = df.copy()
+
+# Only suspicious items
+if only_suspicious:
+    filtered = filtered[filtered["Suspicious"] == True]
+
+# Score threshold
+filtered = filtered[filtered["Score"] >= min_score]
+
+# Reset index for clean table
+filtered = filtered.reset_index(drop=True)
+
+# --- Display ---
+st.subheader("🔍 Filtered Scan Results")
+st.dataframe(filtered, use_container_width=True)
+
