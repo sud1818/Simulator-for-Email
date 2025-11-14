@@ -3,7 +3,6 @@ import pandas as pd
 import random
 import time
 from io import BytesIO
-import matplotlib.pyplot as plt
 
 # -------------------------
 #       PAGE SETTINGS
@@ -99,7 +98,7 @@ if history_enabled:
 if st.button("🚀 Run Scan"):
 
     with st.spinner("Initializing scan..."):
-        time.sleep(1.2)
+        time.sleep(1.0)
 
     # Fake progress animation
     progress = st.progress(0)
@@ -114,7 +113,7 @@ if st.button("🚀 Run Scan"):
     for i, msg in enumerate(messages):
         progress.progress(int((i + 1) * 20))
         st.info(msg)
-        time.sleep(0.5)
+        time.sleep(0.4)
 
     df = generate_fake_scan()
     suspicious_df = df[df["Suspicious"]]
@@ -142,31 +141,31 @@ if st.button("🚀 Run Scan"):
     st.divider()
 
     # -------------------------
-    #     CHART - PIE
+    #     PIE REPLACEMENT
     # -------------------------
-    st.subheader("📊 Suspicious vs Normal Items")
+    st.subheader("📊 Suspicious vs Normal (Chart)")
 
-    labels = ["Suspicious", "Clean"]
-    values = [len(suspicious_df), len(df) - len(suspicious_df)]
+    status_df = pd.DataFrame({
+        "Status": ["Suspicious", "Clean"],
+        "Count": [len(suspicious_df), len(df) - len(suspicious_df)]
+    })
 
-    fig1, ax1 = plt.subplots()
-    ax1.pie(values, labels=labels, autopct="%1.1f%%")
-    ax1.axis("equal")
-    st.pyplot(fig1)
+    st.bar_chart(status_df, x="Status", y="Count", use_container_width=True)
 
     st.divider()
 
     # -------------------------
-    #     BAR CHART (TYPE)
+    #     BAR CHART REPLACEMENT
     # -------------------------
     st.subheader("📊 File vs Process Distribution")
 
     type_counts = df["Type"].value_counts()
+    type_df = pd.DataFrame({
+        "Type": type_counts.index,
+        "Count": type_counts.values
+    })
 
-    fig2, ax2 = plt.subplots()
-    ax2.bar(type_counts.index, type_counts.values)
-    ax2.set_ylabel("Count")
-    st.pyplot(fig2)
+    st.bar_chart(type_df, x="Type", y="Count", use_container_width=True)
 
 
 # -------------------------
