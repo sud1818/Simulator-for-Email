@@ -146,8 +146,5 @@ if st.button("🚀 Run Simulated Scan"):
             file_name="keylogger_simulation_report.xlsx"
         )
 
-st.caption("⚙️ 100% Cloud-safe — no system scanning is performed.")df.to_excel("keylogger_simulation_report.xlsx", index=False)
-with open("keylogger_simulation_report.xlsx", "rb") as f:
-    st.download_button("⬇️ Download Full Report", f, file_name="keylogger_simulation_report.xlsx")
 
 
